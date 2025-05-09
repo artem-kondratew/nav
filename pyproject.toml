@@ -1,0 +1,27 @@
+[project]
+name = "nav"
+version = "1.0.0"
+description = "Package with autonomous navigation algorithms"
+authors = [
+    { name="Artem Kondratev", email="artemkondratev5@gmail.com" }
+]
+dependencies = [
+    "numpy",
+    "matplotlib"
+]
+requires-python = ">=3.10"
+
+[build-system]
+requires = [
+  "setuptools",
+  "setuptools-scm",
+  "wheel",
+  "tk",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
