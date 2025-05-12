@@ -1,7 +1,8 @@
 import heapq
+import matplotlib.pyplot as plt
 import numpy as np
 
-from nav._tools.path_planner import PathPlanner
+from nav._tools.path_planner import PathPlanner, Node
 
 
 class Dijkstra(PathPlanner):
@@ -9,48 +10,63 @@ class Dijkstra(PathPlanner):
     def __init__(self, map):
         super().__init__(map)
         
-    def in_bounds(self, x, y):
-        return 0 <= x < self.map.shape[1] and 0 <= y < self.map.shape[0]
+    def find_path(self, start_pose, goal_pose, show_animation=True):
+        super().find_path(start_pose, goal_pose, show_animation)
         
-    def find_path(self, start_pose, goal_pose):
-        super().find_path(start_pose, goal_pose)
+        open_set, closed_set = dict(), dict()
         
-        sx, sy = start_pose
-        gx, gy = goal_pose
+        open_set[self.calc_node_idx(self.start_node)] = self.start_node
         
-        costmap = np.full(self.map.shape, fill_value=np.inf)
-        costmap[sy, sx] = 0
+        iters = 0
         
-        priority_queue = []
-        heapq.heappush(priority_queue, (0, start_pose))
-        
-        parents = dict({start_pose: start_pose})
-        
-        while priority_queue:
-            dist, pose = heapq.heappop(priority_queue)
-
-            for dir in self.directions:
-                nbx = int(pose[0] + dir[0])
-                nby = int(pose[1] + dir[1])
+        while open_set.keys():
+            iters += 1
             
-                if not self.in_bounds(nbx, nby) or self.map[nby, nbx] == 1:
+            idx = min(open_set.keys(), key=lambda c: open_set[c].cost)
+            node = open_set[idx]
+            
+            if idx not in open_set:
+                continue
+            
+            if show_animation:
+                plt.plot(node.x, node.y, "xc")
+                plt.gcf().canvas.mpl_connect('key_release_event',
+                                             lambda event: [exit(
+                                                 0) if event.key == 'escape' else None])
+                if len(closed_set.keys()) % 10 == 0:
+                    plt.pause(0.001)
+            
+            if node.x == self.goal_node.x and node.y == self.goal_node.y:
+                self.goal_node.parent = node.parent
+                self.goal_node.cost = node.cost
+                break
+            
+            open_set.pop(idx)
+            closed_set[idx] = node
+            
+            for motion in self.motions:
+                nbx = int(node.x + motion[0])
+                nby = int(node.y + motion[1])
+            
+                if not self.in_bounds(nbx, nby) or self.map[nby, nbx] == 0:
                     continue
                 
-                if costmap[nby, nbx] > dist + 1:
-                    costmap[nby, nbx] = dist + 1
-                    parents[(nbx, nby)] = pose
-                    heapq.heappush(priority_queue, (dist + 1, (nbx, nby)))
-                    
-        if costmap[gy, gx] == np.inf:
-            return None
-
-        px, py = parents[(gx, gy)]
-        path = [np.array(goal_pose)]
-        while (px, py) != start_pose:
-            path.append((px, py))
-            px, py = parents[(px, py)]
+                nb_node = Node(nbx, nby, node.cost + motion[2], node)
+                nb_idx = self.calc_node_idx(nb_node)
+                
+                if nb_idx in closed_set:
+                    continue
+                
+                if nb_idx not in open_set or open_set[nb_idx].cost > nb_node.cost:
+                    open_set[nb_idx] = nb_node
+        
+        path = [self.goal_node.coords]
+        child = self.goal_node
+        while child.parent is not None:
+            path.append(child.parent.coords)
+            child = child.parent
             
-        path.append((px, py))
-            
-        return path[::-1]
+        if start_pose in path and goal_pose in path:
+            return path[::-1], iters
+        return None, None
     
