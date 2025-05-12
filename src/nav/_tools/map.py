@@ -4,58 +4,65 @@ import numpy as np
 
 class Map:
     
-    DEFAULT_DENSITY = 0.2
-    
-    def __init__(self, block_start=False, block_goal=False):
-        w, h = 20, 20
+    def __init__(self, array, block_start=False, block_goal=False, w=20, h=20, density=0.2, start_pose=(50, 50), goal_pose=(10, 10)):
+        self.are_poses_drawn = False
         
-        self.start_pose = (16, 5)
-        self.goal_pose = (5, 17)
+        if array is not None:
+            self.map = array
+            return
         
         self.map = np.zeros((h, w))
         prob = np.random.random(self.map.shape)
-        self.map[prob < Map.DEFAULT_DENSITY] = 1
+        self.map[prob < density] = 1
         
-        self.map[self.start_pose[1], self.start_pose[0]] = 0
-        self.map[self.goal_pose[1], self.goal_pose[0]] = 0
+        self.map[start_pose[1], start_pose[0]] = 255
+        self.map[goal_pose[1], goal_pose[0]] = 255
         
         if block_start:
-            self.map[self.start_pose[1]+1, self.start_pose[0]] = 1
-            self.map[self.start_pose[1]-1, self.start_pose[0]] = 1
-            self.map[self.start_pose[1], self.start_pose[0]+1] = 1
-            self.map[self.start_pose[1], self.start_pose[0]-1] = 1
+            self.map[start_pose[1]+1, start_pose[0]] = 1
+            self.map[start_pose[1]-1, start_pose[0]] = 1
+            self.map[start_pose[1], start_pose[0]+1] = 1
+            self.map[start_pose[1], start_pose[0]-1] = 1
             
         if block_goal:
-            self.map[self.goal_pose[1]+1, self.goal_pose[0]] = 1
-            self.map[self.goal_pose[1]-1, self.goal_pose[0]] = 1
-            self.map[self.goal_pose[1], self.goal_pose[0]+1] = 1
-            self.map[self.goal_pose[1], self.goal_pose[0]-1] = 1
-        
-        self.path = None
-        
-    def set_path(self, path):
-        self.path = path
-
-    def draw(self):
-        plt.imshow(self.map, cmap="gray_r")
-        
-        if self.path is not None:
-            xs = [p[0] for p in self.path]
-            ys = [p[1] for p in self.path]
-            plt.plot(xs, ys, c='b', linewidth=2, zorder=1)
+            self.map[goal_pose[1]+1, goal_pose[0]] = 1
+            self.map[goal_pose[1]-1, goal_pose[0]] = 1
+            self.map[goal_pose[1], goal_pose[0]+1] = 1
+            self.map[goal_pose[1], goal_pose[0]-1] = 1
             
-        plt.scatter(self.start_pose[0], self.start_pose[1], c='g', s=100, label='Start', zorder=2)
-        plt.scatter(self.goal_pose[0], self.goal_pose[1], c='r', s=100, label='Goal', zorder=2)
+    def __getitem__(self, key):
+        return self.map[key]
+            
+    @property
+    def shape(self):
+        return self.map.shape
+           
+    def draw(self, path, start_pose, goal_pose, show=True):
+        plt.imshow(self.map, cmap='gray')
+        
+        if path is not None:
+            xs = [p[0] for p in path]
+            ys = [p[1] for p in path]
+            plt.plot(xs, ys, c='b', linewidth=2, zorder=2)
+        
+        if not self.are_poses_drawn:
+            plt.scatter(start_pose[0], start_pose[1], c='g', s=100, label=f'Start', zorder=3)
+            plt.scatter(goal_pose[0], goal_pose[1], c='r', s=100, label=f'Goal', zorder=3)
+        
+        self.are_poses_drawn = True
         
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
-        plt.show()
-        
+        if show:
+            plt.show()
+
     @classmethod
     def from_array(cls, array : np.array):
-        obj = cls()
-        obj.map = array
-        return obj
+        return Map(array=array)
+    
+    @classmethod
+    def random(cls):
+        return Map(array=None)
         
 
 if __name__ == '__main__':
